@@ -102,22 +102,22 @@ const Homepage = () => {
 
     setSardine1({ ...sardine1, success: true, error: "" });
 
-    // const res = await fetch("/api/submit-bid", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify(sardine1),
-    // });
+    const res = await fetch("/api/submit-bid", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sardine1),
+    });
 
-    // if (res.ok) {
-    //   setSardine1({ ...sardine1, success: true, error: "" });
-    // } else {
-    //   setSardine1({
-    //     ...sardine1,
-    //     error: `Bid must be atleast ${requiredBid}`,
-    //   });
-    // }
+    if (res.ok) {
+      setSardine1({ ...sardine1, success: true, error: "" });
+    } else {
+      setSardine1({
+        ...sardine1,
+        error: "Error placing bid",
+      });
+    }
   };
 
   const handleSubmit2 = async (e: React.FormEvent) => {
@@ -150,22 +150,22 @@ const Homepage = () => {
 
     setSardine2({ ...sardine2, success: true, error: "" });
 
-    // const res = await fetch("/api/submit-bid", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify(sardine2),
-    // });
+    const res = await fetch("/api/submit-bid", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sardine2),
+    });
 
-    // if (res.ok) {
-    //   setSardine2({ ...sardine2, success: true, error: "" });
-    // } else {
-    //   setSardine2({
-    //     ...sardine2,
-    //     error: `Bid must be atleast ${requiredBid}`,
-    //   });
-    // }
+    if (res.ok) {
+      setSardine2({ ...sardine2, success: true, error: "" });
+    } else {
+      setSardine2({
+        ...sardine2,
+        error: "Error placing bid",
+      });
+    }
   };
 
   function validateForm(sardine: Sardine) {

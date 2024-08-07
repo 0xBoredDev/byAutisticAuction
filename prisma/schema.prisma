@@ -7,3 +7,23 @@ datasource db {
   url = env("POSTGRES_PRISMA_URL") // uses connection pooling
   directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
+
+model Bid {
+  id Int @id @default(autoincrement())
+  item Int
+  bid Float
+  name String
+  email String?
+  phone String?
+  twitter String?
+  telegram String?
+  createdAt DateTime @default(now())
+}
+
+model Auction {
+  id Int @id @default(autoincrement())
+  item Int
+  price Float
+  startDate DateTime
+  endDate DateTime
+}
