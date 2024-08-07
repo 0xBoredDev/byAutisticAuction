@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { GoogleAnalytics } from '@next/third-parties/google'
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Bored Map",
-  description: "A map for BAYC owners",
+  title: "By Autistic Auction",
+  description: "Fuck it Friday auction By Autistic",
 };
 
 export default function RootLayout({
@@ -17,7 +16,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <GoogleAnalytics gaId="G-X02DBFLD5P" />
       <body className={inter.className}>{children}</body>
     </html>
   );

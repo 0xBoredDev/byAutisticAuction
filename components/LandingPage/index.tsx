@@ -496,7 +496,7 @@ const Homepage = () => {
 
       <Footer container className="bg-black">
         <div className="container flex flex-col align-items-center">
-          <Footer.Copyright href="#" by="Bored Labs, LLC." year={2024} />
+          <Footer.Copyright href="https://x.com/0xBoredDev" by="Bored Labs, LLC." year={2024} />
           <Footer.LinkGroup className="justify-center mt-4">
             <Footer.Link href="https://x.com/ByAutistic" target="_blank">
               <BsTwitterX size={"20px"} className="mx-auto" /> ByAutistic
