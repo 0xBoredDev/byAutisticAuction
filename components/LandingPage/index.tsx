@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TextInput, Label, Button, Footer } from "flowbite-react";
 import { BsTwitterX } from "react-icons/bs";
 
-interface Sardine {
+interface Bid {
   item: number;
-  currentPrice: number;
   bid: string;
   name: string;
   email: string;
@@ -17,24 +16,75 @@ interface Sardine {
   success: boolean;
 }
 
+interface Auction {
+  id: number;
+  item: number;
+  price: number;
+  startDate: string;
+  endDate: string;
+}
+
 const Homepage = () => {
-  const mainRef = useRef<HTMLDivElement | null>(null);
-  const [sardine1, setSardine1] = useState<Sardine>(createSardine(1));
-  const [sardine2, setSardine2] = useState<Sardine>(createSardine(2));
-  const [currentPrice1, setCurrentPrice1] = useState(1000);
-  const [bid1, setBid1] = useState("");
-  const [name1, setName1] = useState("");
-  const [email1, setEmail1] = useState("");
-  const [phone1, setPhone1] = useState("");
-  const [twitter1, setTwitter1] = useState("");
-  const [telegram1, setTelegram1] = useState("");
+  const [auction1, setAuction1] = useState<Auction>(createAuction(1));
+  const [auction2, setAuction2] = useState<Auction>(createAuction(2));
+  const [bid1, setBid1] = useState<Bid>(createBid(1));
+  const [bid2, setBid2] = useState<Bid>(createBid(2));
+  const [isProcessing1, setIsProcessing1] = useState(false);
+  const [isProcessing2, setIsProcessing2] = useState(false);
+  const startTime = new Date("2024-08-09T23:00:00-05:00");
+  const endTime = new Date("2024-08-11T23:00:00-05:00");
 
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const getAuctions = async () => {
+    const res = await fetch("/api/get-auctions", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-  function createSardine(item: number) {
-    let newSardine: Sardine = {
+    if (!res.ok) {
+      throw new Error("Failed to fetch auctions");
+    }
+    return res.json();
+  };
+
+  const submitBid = async (bid: Bid) => {
+    const res = await fetch("/api/submit-bid", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bid),
+    });
+
+    return res.json();
+  };
+
+  useEffect(() => {
+    getAuctions().then((data) => {
+      setAuction1(data[0]);
+      setAuction2(data[1]);
+    });
+  }, []);
+
+  const formatDate = (date: Date) => {
+    const formatted = new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "long",
+      timeZone: "PST",
+    }).format(date);
+
+    return formatted;
+  };
+
+  const isAuctionLive = () => {
+    const curDate = new Date(Date.now());
+    return (curDate >= startTime && curDate <= endTime) ? true: false;
+  };
+
+  function createBid(item: number) {
+    let newBid: Bid = {
       item: item,
-      currentPrice: 1000,
       bid: "",
       name: "",
       email: "",
@@ -45,132 +95,142 @@ const Homepage = () => {
       success: false,
     };
 
-    return newSardine;
+    return newBid;
   }
-  console.log(sardine1);
-  // function isElementOnScreen(id: string) {
-  //   const element = document.getElementById(id);
-  //   if (!element) return false;
-  //   const bounds = element.getBoundingClientRect();
-  //   return bounds.top < window.innerHeight && bounds.bottom > 100;
-  // }
 
-  // useEffect(() => {
-  //   let minBidPrice = currentPrice1 + 100;
-  //   setBid1(minBidPrice.toString());
-  // }, [currentPrice1]);
+  function createAuction(item: number) {
+    let newAuction: Auction = {
+      id: 0,
+      item: item,
+      price: 1000,
+      endDate: "",
+      startDate: "",
+    };
+
+    return newAuction;
+  }
 
   const handleBid1Change = (input: string) => {
     let numberFormat = Number(input);
     const final = Math.trunc(numberFormat);
-    setSardine1({ ...sardine1, bid: final.toString() });
+    setBid1({ ...bid1, bid: final.toString() });
   };
 
   const handleBid2Change = (input: string) => {
     let numberFormat = Number(input);
     const final = Math.trunc(numberFormat);
-    setSardine2({ ...sardine2, bid: final.toString() });
+    setBid2({ ...bid2, bid: final.toString() });
   };
 
   const handleSubmit1 = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(sardine1);
 
+    const isLive = isAuctionLive();
+
+    if (!isLive) {
+      setBid1({
+        ...bid1,
+        error: "This auction is not currently live.",
+      });
+      return;
+    }
+    
     if (
-      sardine1.email == "" &&
-      sardine1.phone == "" &&
-      sardine1.twitter == "" &&
-      sardine1.telegram == ""
+      bid1.email == "" &&
+      bid1.phone == "" &&
+      bid1.twitter == "" &&
+      bid1.telegram == ""
     ) {
-      setSardine1({
-        ...sardine1,
+      setBid1({
+        ...bid1,
         error: "Please enter one of the contact fields",
       });
       return;
     }
 
-    const curBid = Number(sardine1.bid);
-    const requiredBid = sardine1.currentPrice + 100;
+    const curBid = Number(bid1.bid);
+    const requiredBid = auction1.price + 100;
 
     if (curBid < requiredBid) {
-      setSardine1({
-        ...sardine1,
+      setBid1({
+        ...bid1,
         error: `Bid must be atleast ${requiredBid}`,
       });
       return;
     }
 
-    setSardine1({ ...sardine1, success: true, error: "" });
+    submitBid(bid1)
+      .then((res) => {
+        if (!res.success) {
+          throw new Error(res.message);
+        }
 
-    const res = await fetch("/api/submit-bid", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(sardine1),
-    });
-
-    if (res.ok) {
-      setSardine1({ ...sardine1, success: true, error: "" });
-    } else {
-      setSardine1({
-        ...sardine1,
-        error: "Error placing bid",
+        setBid1({ ...bid1, success: true, error: "" });
+        setAuction1({ ...auction1, price: curBid });
+      })
+      .catch((err) => {
+        console.log(err);
+        setBid1({
+          ...bid1,
+          error: err.message,
+        });
       });
-    }
   };
 
   const handleSubmit2 = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(sardine2);
+
+    const isLive = isAuctionLive();
+
+    if (!isLive) {
+      setBid1({
+        ...bid1,
+        error: "This auction is not currently live.",
+      });
+      return;
+    }
 
     if (
-      sardine2.email == "" &&
-      sardine2.phone == "" &&
-      sardine2.twitter == "" &&
-      sardine2.telegram == ""
+      bid2.email == "" &&
+      bid2.phone == "" &&
+      bid2.twitter == "" &&
+      bid2.telegram == ""
     ) {
-      setSardine2({
-        ...sardine2,
+      setBid2({
+        ...bid2,
         error: "Please enter one of the contact fields",
       });
       return;
     }
 
-    const curBid = Number(sardine2.bid);
-    const requiredBid = sardine2.currentPrice + 100;
+    const curBid = Number(bid2.bid);
+    const requiredBid = auction2.price + 100;
 
     if (curBid < requiredBid) {
-      setSardine2({
-        ...sardine2,
+      setBid2({
+        ...bid2,
         error: `Bid must be atleast ${requiredBid}`,
       });
       return;
     }
 
-    setSardine2({ ...sardine2, success: true, error: "" });
+    submitBid(bid2)
+      .then((res) => {
+        if (!res.success) {
+          throw new Error(res.message);
+        }
 
-    const res = await fetch("/api/submit-bid", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(sardine2),
-    });
-
-    if (res.ok) {
-      setSardine2({ ...sardine2, success: true, error: "" });
-    } else {
-      setSardine2({
-        ...sardine2,
-        error: "Error placing bid",
+        setBid2({ ...bid2, success: true, error: "" });
+        setAuction2({ ...auction2, price: curBid });
+      })
+      .catch((err) => {
+        console.log(err);
+        setBid2({
+          ...bid2,
+          error: err.message,
+        });
       });
-    }
   };
-
-  function validateForm(sardine: Sardine) {
-
-  }
 
   return (
     <main className="flex bg-[url('/bg.png')] bg-no-repeat bg-cover min-h-full h-full flex-col items-center justify-between">
@@ -182,21 +242,28 @@ const Homepage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-10 mb-20">
-        <div className="order-2 md:order-1 mx-auto bg-white rounded-xl shadow-md overflow-hidden max-w-md">
+        <div className="order-2 md:order-1 mx-auto bg-white rounded-xl shadow-md overflow-hidden max-w-2xl sm:max-w-md">
           <img
             className="h-396 w-full object-cover"
             src="/sardine1.jpg"
             alt="lisbon sardine 1"
           />
           <div className="p-2">
-            <div className="tracking-wide text-lg leading-tight font-medium text-black text-center mb-2">
+            <div className="tracking-wide text-2xl leading-tight font-semibold text-black text-center mb-2">
               The Lisbon Sardines 1
             </div>
-            <div className="text-black text-center">
-              <p>Current Price: ${sardine1.currentPrice}</p>
-            </div>
+            <p className="text-black text-center text-xs mb-2">
+              <span className="font-bold">Start:</span> {formatDate(startTime)}
+            </p>
+            <p className="text-black text-center text-xs mb-4">
+              <span className="font-bold">End:</span> {formatDate(endTime)}
+            </p>
+            <p className="text-black text-center text-lg font-semibold">
+              Current Price: ${auction1.price}
+            </p>
+
             <div className="flex gap-2 pt-4 justify-center">
-              <form onSubmit={handleSubmit1}>
+              <form id="auction1" onSubmit={handleSubmit1}>
                 <div className="flex space-x-2">
                   <div>
                     <div className="mb-2 block">
@@ -207,11 +274,9 @@ const Homepage = () => {
                       type="text"
                       id="bid"
                       required
-                      placeholder={`min $${(
-                        sardine1.currentPrice + 100
-                      ).toString()}`}
+                      placeholder={`min $${(auction1.price + 100).toString()}`}
                       onChange={(e) => handleBid1Change(e.target.value)}
-                      value={sardine1.bid}
+                      value={bid1.bid}
                       disabled={false}
                     />
                   </div>
@@ -226,14 +291,14 @@ const Homepage = () => {
                       required
                       placeholder="Satoshi Nakamoto"
                       onChange={(e) =>
-                        setSardine1({ ...sardine1, name: e.target.value })
+                        setBid1({ ...bid1, name: e.target.value })
                       }
-                      value={sardine1.name}
+                      value={bid1.name}
                       disabled={false}
                     />
                   </div>
                 </div>
-                <p className="text-slate-500 text-center m-2">
+                <p className="text-slate-500 text-center text-xs m-2">
                   1 field below is required for contact
                 </p>
                 <div className="flex space-x-2">
@@ -247,9 +312,9 @@ const Homepage = () => {
                       id="email"
                       placeholder="satoshi@email.com"
                       onChange={(e) =>
-                        setSardine1({ ...sardine1, email: e.target.value })
+                        setBid1({ ...bid1, email: e.target.value })
                       }
-                      value={sardine1.email}
+                      value={bid1.email}
                       disabled={false}
                     />
                   </div>
@@ -264,9 +329,9 @@ const Homepage = () => {
                       id="phone"
                       placeholder="012-345-6789"
                       onChange={(e) =>
-                        setSardine1({ ...sardine1, phone: e.target.value })
+                        setBid1({ ...bid1, phone: e.target.value })
                       }
-                      value={sardine1.phone}
+                      value={bid1.phone}
                       disabled={false}
                     />
                   </div>
@@ -283,9 +348,9 @@ const Homepage = () => {
                       id="twitter"
                       placeholder="@0xBoredDev"
                       onChange={(e) =>
-                        setSardine1({ ...sardine1, twitter: e.target.value })
+                        setBid1({ ...bid1, twitter: e.target.value })
                       }
-                      value={sardine1.twitter}
+                      value={bid1.twitter}
                       disabled={false}
                     />
                   </div>
@@ -299,28 +364,28 @@ const Homepage = () => {
                       id="telegram"
                       placeholder="@OxBoredDev"
                       onChange={(e) =>
-                        setSardine1({ ...sardine1, telegram: e.target.value })
+                        setBid1({ ...bid1, telegram: e.target.value })
                       }
-                      value={sardine1.telegram}
+                      value={bid1.telegram}
                       disabled={false}
                     />
                   </div>
                 </div>
-                {sardine1.success ? (
+                {bid1.success ? (
                   <p className="text-green-500 text-center my-2">
                     Thank you for your bid!
                   </p>
                 ) : (
-                  <p className="text-red-500 text-center my-2">
-                    {sardine1.error}
-                  </p>
+                  <p className="text-red-500 text-center my-2">{bid1.error}</p>
                 )}
                 <Button
                   type="submit"
-                  disabled={sardine1.success}
-                  className="flex disabled:disabled:text-slate-500 mt-4 w-full justify-center"
+                  disabled={bid1.success}
+                  // onClick={() => setIsProcessing1(true)}
+                  isProcessing={isProcessing1}
+                  className="flex disabled:disabled:text-slate-500 mt-4 w-full justify-center mb-2"
                 >
-                  {sardine1.success ? "Submitted!" : "Submit"}
+                  {bid1.success ? "Submitted!" : "Submit"}
                 </Button>
               </form>
             </div>
@@ -329,7 +394,7 @@ const Homepage = () => {
 
         <div className="order-1 md:order-2 mx-auto bg-black/[.5] rounded-xl shadow-md overflow-hidden self-center h-fit">
           <div className="p-8">
-            <p className="text-3xl text-white text-center">
+            <p className=" text-lg sm:text-3xl text-white text-center">
               Hand embroidered silk art pieces. Hand threaded by 10 artisans in
               Ghana, Africa. The intricate one month process requires the image
               of choice to be first traced by an artisan, after which the
@@ -344,21 +409,29 @@ const Homepage = () => {
           </div>
         </div>
 
-        <div className="order-2 md:order-3 mx-auto bg-white rounded-xl shadow-md overflow-hidden max-w-md">
+        <div className="order-2 md:order-3 mx-auto bg-white rounded-xl shadow-md overflow-hidden max-w-2xl sm:max-w-md">
           <img
             className="h-496 w-full object-cover"
             src="/sardine2.jpg"
             alt="lisbon sardine 2"
           />
           <div className="p-2">
-            <div className="tracking-wide text-lg leading-tight font-medium text-black text-center mb-2">
-              The Lisbon Sardines 1
+            <div className="tracking-wide text-2xl leading-tight font-semibold text-black text-center mb-2">
+              The Lisbon Sardines 2
             </div>
-            <div className="text-black text-center">
-              <p>Current Price: ${sardine2.currentPrice}</p>
-            </div>
+            <p className="text-black text-center text-xs mb-2">
+              <span className="font-bold">Start:</span> {formatDate(startTime)}
+            </p>
+            <p className="text-black text-center text-xs mb-4">
+              <span className="font-bold">End:</span> {formatDate(endTime)}
+            </p>
+
+            <p className="text-black text-center text-lg font-semibold">
+              Current Price: ${auction2.price}
+            </p>
+
             <div className="flex gap-2 pt-4 justify-center">
-              <form onSubmit={handleSubmit2}>
+              <form id="auction2" onSubmit={handleSubmit2}>
                 <div className="flex space-x-2">
                   <div>
                     <div className="mb-2 block">
@@ -369,11 +442,9 @@ const Homepage = () => {
                       type="text"
                       id="bid"
                       required
-                      placeholder={`min $${(
-                        sardine2.currentPrice + 100
-                      ).toString()}`}
+                      placeholder={`min $${(auction2.price + 100).toString()}`}
                       onChange={(e) => handleBid2Change(e.target.value)}
-                      value={sardine2.bid}
+                      value={bid2.bid}
                       disabled={false}
                     />
                   </div>
@@ -388,14 +459,14 @@ const Homepage = () => {
                       required
                       placeholder="Satoshi Nakamoto"
                       onChange={(e) =>
-                        setSardine2({ ...sardine2, name: e.target.value })
+                        setBid2({ ...bid2, name: e.target.value })
                       }
-                      value={sardine2.name}
+                      value={bid2.name}
                       disabled={false}
                     />
                   </div>
                 </div>
-                <p className="text-slate-500 text-center m-2">
+                <p className="text-slate-500 text-center text-xs m-2">
                   1 field below is required for contact
                 </p>
                 <div className="flex space-x-2">
@@ -409,9 +480,9 @@ const Homepage = () => {
                       id="email"
                       placeholder="satoshi@email.com"
                       onChange={(e) =>
-                        setSardine2({ ...sardine2, email: e.target.value })
+                        setBid2({ ...bid2, email: e.target.value })
                       }
-                      value={sardine2.email}
+                      value={bid2.email}
                       disabled={false}
                     />
                   </div>
@@ -426,9 +497,9 @@ const Homepage = () => {
                       id="phone"
                       placeholder="012-345-6789"
                       onChange={(e) =>
-                        setSardine2({ ...sardine2, phone: e.target.value })
+                        setBid2({ ...bid2, phone: e.target.value })
                       }
-                      value={sardine2.phone}
+                      value={bid2.phone}
                       disabled={false}
                     />
                   </div>
@@ -445,9 +516,9 @@ const Homepage = () => {
                       id="twitter"
                       placeholder="@0xBoredDev"
                       onChange={(e) =>
-                        setSardine2({ ...sardine2, twitter: e.target.value })
+                        setBid2({ ...bid2, twitter: e.target.value })
                       }
-                      value={sardine2.twitter}
+                      value={bid2.twitter}
                       disabled={false}
                     />
                   </div>
@@ -461,28 +532,28 @@ const Homepage = () => {
                       id="telegram"
                       placeholder="@OxBoredDev"
                       onChange={(e) =>
-                        setSardine2({ ...sardine2, telegram: e.target.value })
+                        setBid2({ ...bid2, telegram: e.target.value })
                       }
-                      value={sardine2.telegram}
+                      value={bid2.telegram}
                       disabled={false}
                     />
                   </div>
                 </div>
-                {sardine2.success ? (
+                {bid2.success ? (
                   <p className="text-green-500 text-center my-2">
                     Thank you for your bid!
                   </p>
                 ) : (
-                  <p className="text-red-500 text-center my-2">
-                    {sardine2.error}
-                  </p>
+                  <p className="text-red-500 text-center my-2">{bid2.error}</p>
                 )}
                 <Button
                   type="submit"
-                  disabled={sardine2.success}
-                  className="flex disabled:disabled:text-slate-500 mt-4 w-full justify-center"
+                  disabled={bid2.success}
+                  onClick={() => setIsProcessing2(true)}
+                  isProcessing={isProcessing2}
+                  className="flex disabled:disabled:text-slate-500 mt-4 w-full justify-center mb-2"
                 >
-                  {sardine2.success ? "Submitted!" : "Submit"}
+                  {bid2.success ? "Submitted!" : "Submit"}
                 </Button>
               </form>
             </div>
@@ -494,15 +565,21 @@ const Homepage = () => {
         <img src="/fif_logo.png" alt="Logo" />
       </div>
 
-      <Footer container className="bg-black">
-        <div className="container flex flex-col align-items-center">
-          <Footer.Copyright href="https://x.com/0xBoredDev" by="Bored Labs, LLC." year={2024} />
+      <Footer container className="bg-black justify-center md:justify-center">
+        <div className="container flex flex-col align-items-center text-center sm:text-center">
+          <Footer.Copyright
+            href="https://x.com/0xBoredDev"
+            by="Bored Labs, LLC."
+            year={2024}
+          />
           <Footer.LinkGroup className="justify-center mt-4">
             <Footer.Link href="https://x.com/ByAutistic" target="_blank">
-              <BsTwitterX size={"20px"} className="mx-auto" /> ByAutistic
+              <BsTwitterX size={"20px"} className="mx-auto" />
+              <span>&nbsp;ByAutistic</span>
             </Footer.Link>
             <Footer.Link href="https://x.com/FuckItProd" target="_blank">
-              <BsTwitterX size={"20px"} className="mx-auto" /> FuckItProd
+              <BsTwitterX size={"20px"} className="mx-auto" />
+              <span>&nbsp;FuckItProd</span>
             </Footer.Link>
           </Footer.LinkGroup>
         </div>
